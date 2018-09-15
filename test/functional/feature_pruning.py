@@ -66,9 +66,9 @@ class PruneTest(BitcoinTestFramework):
 
     def create_big_chain(self):
         # Start by creating some coinbases we can spend later
-        self.nodes[1].generate(200)
+        self.nodes[1].generatetoaddress(200, self.nodes[1].get_deterministic_priv_key().address)
         sync_blocks(self.nodes[0:2])
-        self.nodes[0].generate(150)
+        self.nodes[0].generatetoaddress(150, self.nodes[0].get_deterministic_priv_key().address)
         # Then mine enough full blocks to create more than 550MiB of data
         for i in range(645):
             mine_large_block(self.nodes[0], self.utxo_cache_0)
@@ -112,7 +112,8 @@ class PruneTest(BitcoinTestFramework):
                     # Add node1's wallet transactions back to the mempool, to
                     # avoid the mined blocks from being too small.
                     self.nodes[1].resendwallettransactions()
-                    self.nodes[1].generate(1) #tx's already in mempool from previous disconnects
+                    # tx's already in mempool from previous disconnects
+                    self.nodes[1].generatetoaddress(1, self.nodes[1].get_deterministic_priv_key().address)
 
             # Reorg back with 25 block chain from node 0
             for i in range(25):
@@ -157,7 +158,7 @@ class PruneTest(BitcoinTestFramework):
         self.start_node(1, extra_args=["-maxreceivebuffer=20000","-blockmaxweight=20000", "-checkblocks=5"])
 
         self.log.info("Generating new longer chain of 300 more blocks")
-        self.nodes[1].generate(300)
+        self.nodes[1].generatetoaddress(300, self.nodes[1].get_deterministic_priv_key().address)
 
         self.log.info("Reconnect nodes")
         connect_nodes(self.nodes[0], 1)
@@ -176,7 +177,8 @@ class PruneTest(BitcoinTestFramework):
         for i in range(22):
             # This can be slow, so do this in multiple RPC calls to avoid
             # RPC timeouts.
-            self.nodes[0].generate(10) #node 0 has many large tx's in its mempool from the disconnects
+            # node 0 has many large tx's in its mempool from the disconnects
+            self.nodes[0].generatetoaddress(10, self.nodes[0].get_deterministic_priv_key().address)
         sync_blocks(self.nodes[0:3], timeout=300)
 
         usage = calc_usage(self.prunedir)
@@ -217,7 +219,7 @@ class PruneTest(BitcoinTestFramework):
             self.nodes[0].invalidateblock(curchainhash)
             assert(self.nodes[0].getblockcount() == self.mainchainheight)
             assert(self.nodes[0].getbestblockhash() == self.mainchainhash2)
-            goalbesthash = self.nodes[0].generate(blocks_to_mine)[-1]
+            goalbesthash = self.nodes[0].generatetoaddress(blocks_to_mine, self.nodes[0].get_deterministic_priv_key().address)[-1]
             goalbestheight = first_reorg_height + 1
 
         self.log.info("Verify node 2 reorged back to the main chain, some blocks of which it had to redownload")
@@ -272,7 +274,7 @@ class PruneTest(BitcoinTestFramework):
         assert_equal(block1_details["nTx"], len(block1_details["tx"]))
 
         # mine 6 blocks so we are at height 1001 (i.e., above PruneAfterHeight)
-        node.generate(6)
+        node.generatetoaddress(6, node.get_deterministic_priv_key().address)
         assert_equal(node.getblockchaininfo()["blocks"], 1001)
 
         # Pruned block should still know the number of transactions
@@ -309,7 +311,7 @@ class PruneTest(BitcoinTestFramework):
             raise AssertionError("blk00002.dat is still there, should be pruned by now")
 
         # advance the tip so blk00002.dat and blk00003.dat can be pruned (the last 288 blocks should now be in blk00004.dat)
-        node.generate(288)
+        node.generatetoaddress(288, node.get_deterministic_priv_key().address)
         prune(1000)
         if has_block(2):
             raise AssertionError("blk00002.dat is still there, should be pruned by now")
