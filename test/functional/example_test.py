@@ -85,6 +85,8 @@ class ExampleTest(BitcoinTestFramework):
 
         # self.log.info("I've finished set_test_params")  # Oops! Can't run self.log before run_test()
 
+    # Use skip_test_if_missing_module() to skip the test if your test requires certain modules to be present.
+    # This test uses generate which requires wallet to be compiled
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
 
@@ -139,7 +141,7 @@ class ExampleTest(BitcoinTestFramework):
 
         # Generating a block on one of the nodes will get us out of IBD
         blocks = [int(self.nodes[0].generate(nblocks=1)[0], 16)]
-        self.sync_all([self.nodes[0:1]])
+        self.sync_all([self.nodes[0:2]])
 
         # Notice above how we called an RPC by calling a method with the same
         # name on the node object. Notice also how we used a keyword argument
@@ -166,7 +168,7 @@ class ExampleTest(BitcoinTestFramework):
 
         for i in range(10):
             # Use the mininode and blocktools functionality to manually build a block
-            # Calling the generate() rpc is easier, but this allows us to exactly
+            # Calling the generatetoaddress()/generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
             block = create_block(self.tip, create_coinbase(height), self.block_time)
             block.solve()
