@@ -25,11 +25,14 @@ class BIP68Test(BitcoinTestFramework):
         self.num_nodes = 2
         self.extra_args = [[], ["-acceptnonstdtxn=0"]]
 
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
+
     def run_test(self):
         self.relayfee = self.nodes[0].getnetworkinfo()["relayfee"]
 
         # Generate some coins
-        self.nodes[0].generatetoaddress(110, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(110)
 
         self.log.info("Running test disable flag")
         self.test_disable_flag()
@@ -117,7 +120,7 @@ class BIP68Test(BitcoinTestFramework):
             for i in range(num_outputs):
                 outputs[addresses[i]] = random.randint(1, 20)*0.01
             self.nodes[0].sendmany("", outputs)
-            self.nodes[0].generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)
+            self.nodes[0].generate(1)
 
         utxos = self.nodes[0].listunspent()
 
@@ -247,7 +250,7 @@ class BIP68Test(BitcoinTestFramework):
         cur_time = int(time.time())
         for i in range(10):
             self.nodes[0].setmocktime(cur_time + 600)
-            self.nodes[0].generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)
+            self.nodes[0].generate(1)
             cur_time += 600
 
         assert(tx2.hash in self.nodes[0].getrawmempool())
@@ -260,7 +263,7 @@ class BIP68Test(BitcoinTestFramework):
 
         # Advance the time on the node so that we can test timelocks
         self.nodes[0].setmocktime(cur_time+600)
-        self.nodes[0].generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(1)
         assert(tx2.hash not in self.nodes[0].getrawmempool())
 
         # Now that tx2 is not in the mempool, a sequence locked spend should
@@ -268,7 +271,7 @@ class BIP68Test(BitcoinTestFramework):
         tx3 = test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=False)
         assert(tx3.hash in self.nodes[0].getrawmempool())
 
-        self.nodes[0].generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(1)
         assert(tx3.hash not in self.nodes[0].getrawmempool())
 
         # One more test, this time using height locks
@@ -322,7 +325,7 @@ class BIP68Test(BitcoinTestFramework):
         # Reset the chain and get rid of the mocktimed-blocks
         self.nodes[0].setmocktime(0)
         self.nodes[0].invalidateblock(self.nodes[0].getblockhash(cur_height+1))
-        self.nodes[0].generatetoaddress(10, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(10)
 
     # Make sure that BIP68 isn't being used to validate blocks, prior to
     # versionbits activation.  If more blocks are mined prior to this test
@@ -378,9 +381,9 @@ class BIP68Test(BitcoinTestFramework):
         min_activation_height = 432
         height = self.nodes[0].getblockcount()
         assert_greater_than(min_activation_height - height, 2)
-        self.nodes[0].generatetoaddress(min_activation_height - height - 2, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(min_activation_height - height - 2)
         assert_equal(get_bip9_status(self.nodes[0], 'csv')['status'], "locked_in")
-        self.nodes[0].generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(1)
         assert_equal(get_bip9_status(self.nodes[0], 'csv')['status'], "active")
         sync_blocks(self.nodes)
 

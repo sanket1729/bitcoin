@@ -122,7 +122,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         block = self.build_block_on_tip(self.nodes[0])
         self.test_node.send_and_ping(msg_block(block))
         assert(int(self.nodes[0].getbestblockhash(), 16) == block.sha256)
-        self.nodes[0].generatetoaddress(100, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(100)
 
         total_value = block.vtx[0].vout[0].nValue
         out_value = total_value // 10
@@ -166,7 +166,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         def check_announcement_of_new_block(node, peer, predicate):
             peer.clear_block_announcement()
-            block_hash = int(node.generatetoaddress(1, self.nodes[0].get_deterministic_priv_key().address)[0], 16)
+            block_hash = int(node.generate(1)[0], 16)
             peer.wait_for_block_announcement(block_hash, timeout=30)
             assert(peer.block_announced)
 
@@ -243,7 +243,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
     # This test actually causes bitcoind to (reasonably!) disconnect us, so do this last.
     def test_invalid_cmpctblock_message(self):
-        self.nodes[0].generatetoaddress(101, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generate(101)
         block = self.build_block_on_tip(self.nodes[0])
 
         cmpct_block = P2PHeaderAndShortIDs()
@@ -259,7 +259,7 @@ class CompactBlocksTest(BitcoinTestFramework):
     # bitcoind's choice of nonce.
     def test_compactblock_construction(self, node, test_node, version, use_witness_address):
         # Generate a bunch of transactions.
-        node.generatetoaddress(101, node.get_deterministic_priv_key().address)
+        node.generate(101)
         num_transactions = 25
         address = node.getnewaddress()
         if use_witness_address:
@@ -268,7 +268,7 @@ class CompactBlocksTest(BitcoinTestFramework):
             address = node.addwitnessaddress(address)
             value_to_send = node.getbalance()
             node.sendtoaddress(address, satoshi_round(value_to_send-Decimal(0.1)))
-            node.generatetoaddress(1, node.get_deterministic_priv_key().address)
+            node.generate(1)
 
         segwit_tx_generated = False
         for i in range(num_transactions):
@@ -290,7 +290,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         # Now mine a block, and look at the resulting compact block.
         test_node.clear_block_announcement()
-        block_hash = int(node.generatetoaddress(1, node.get_deterministic_priv_key().address)[0], 16)
+        block_hash = int(node.generate(1)[0], 16)
 
         # Store the raw block in our internal format.
         block = FromHex(CBlock(), node.getblock("%02x" % block_hash, False))
@@ -634,7 +634,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         new_blocks = []
         for i in range(MAX_CMPCTBLOCK_DEPTH + 1):
             test_node.clear_block_announcement()
-            new_blocks.append(node.generatetoaddress(1, node.get_deterministic_priv_key().address)[0])
+            new_blocks.append(node.generate(1)[0])
             wait_until(test_node.received_block_announcement, timeout=30, lock=mininode_lock)
 
         test_node.clear_block_announcement()
@@ -642,7 +642,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         wait_until(lambda: "cmpctblock" in test_node.last_message, timeout=30, lock=mininode_lock)
 
         test_node.clear_block_announcement()
-        node.generatetoaddress(1, node.get_deterministic_priv_key().address)
+        node.generate(1)
         wait_until(test_node.received_block_announcement, timeout=30, lock=mininode_lock)
         test_node.clear_block_announcement()
         with mininode_lock:
@@ -684,7 +684,7 @@ class CompactBlocksTest(BitcoinTestFramework):
             assert "blocktxn" not in test_node.last_message
 
     def activate_segwit(self, node):
-        node.generatetoaddress(144*3, node.get_deterministic_priv_key().address)
+        node.generate(144*3)
         assert_equal(get_bip9_status(node, "segwit")["status"], 'active')
 
     def test_end_to_end_block_relay(self, node, listeners):

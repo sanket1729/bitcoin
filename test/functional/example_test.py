@@ -167,7 +167,7 @@ class ExampleTest(BitcoinTestFramework):
 
         for i in range(10):
             # Use the mininode and blocktools functionality to manually build a block
-            # Calling the generatetoaddress() rpc is easier, but this allows us to exactly
+            # Calling the generatetoaddress()/generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
             block = create_block(self.tip, create_coinbase(height), self.block_time)
             block.solve()
